@@ -25,6 +25,7 @@ struct Config {
     uint64_t rate_bps = 0;       // bits per second (rate mode)
     uint64_t duration_sec = 0;   // seconds (rate mode)
     uint64_t burst_bytes = 0;    // bytes (burst mode)
+    int threads = 1;              // number of sender threads / receiver connections
 };
 
 struct Stats {
@@ -56,6 +57,13 @@ struct Stats {
             last_report_time = now;
             last_report_bytes = total_bytes;
         }
+    }
+
+    void merge(const Stats& other) {
+        if (total_packets == 0 || other.start_time < start_time)
+            start_time = other.start_time;
+        total_bytes += other.total_bytes;
+        total_packets += other.total_packets;
     }
 };
 

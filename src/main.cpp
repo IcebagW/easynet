@@ -46,11 +46,11 @@ uint64_t parse_duration(const char* s) {
 void print_usage(const char* prog) {
     printf("Usage:\n");
     printf("  Sender - fixed rate mode:\n");
-    printf("    %s send --dst <ip> --port <port> --proto <tcp|udp> --rate <rate> --duration <duration>\n", prog);
+    printf("    %s send --dst <ip> --port <port> --proto <tcp|udp> --rate <rate> --duration <duration> [--threads <n>]\n", prog);
     printf("    Example: %s send --dst 192.168.1.100 --port 8080 --proto tcp --rate 10m --duration 30s\n", prog);
     printf("\n");
     printf("  Sender - burst mode:\n");
-    printf("    %s send --dst <ip> --port <port> --proto <tcp|udp> --burst <size>\n", prog);
+    printf("    %s send --dst <ip> --port <port> --proto <tcp|udp> --burst <size> [--threads <n>]\n", prog);
     printf("    Example: %s send --dst 192.168.1.100 --port 8080 --proto udp --burst 10mb\n", prog);
     printf("\n");
     printf("  Receiver:\n");
@@ -61,6 +61,7 @@ void print_usage(const char* prog) {
     printf("  Rate:  k=Kbit/s, m=Mbit/s, g=Gbit/s  (e.g. 10m = 10 Mbit/s)\n");
     printf("  Size:  kb=KB, mb=MB, gb=GB           (e.g. 10mb = 10 MB)\n");
     printf("  Time:  s=seconds, m=minutes, h=hours  (e.g. 30s = 30 seconds)\n");
+    printf("  Threads: 1-64 (default 1)\n");
 }
 
 static bool has_prefix(const char* arg, const char* prefix) {
@@ -138,6 +139,14 @@ int main(int argc, char* argv[]) {
             cfg.burst_bytes = parse_size(val);
             if (cfg.burst_bytes == 0) { fprintf(stderr, "Invalid burst size: %s\n", val); platform_cleanup(); return 1; }
             has_burst = true;
+        } else if (has_prefix(arg, "--threads=")) {
+            val = get_value(arg);
+            if (!val) { fprintf(stderr, "Missing value for --threads\n"); platform_cleanup(); return 1; }
+            cfg.threads = atoi(val);
+            if (cfg.threads < 1 || cfg.threads > 64) {
+                fprintf(stderr, "Invalid threads: %d (must be 1-64)\n", cfg.threads);
+                platform_cleanup(); return 1;
+            }
         } else {
             fprintf(stderr, "Unknown argument: %s\n", arg);
             print_usage(argv[0]);
