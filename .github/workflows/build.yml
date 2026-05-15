@@ -12,7 +12,13 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            binary: build/easynet
+          - os: macos-latest
+            binary: build/easynet
+          - os: windows-latest
+            binary: build/Release/easynet.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +33,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: easynet-${{ matrix.os }}
-          path: build/easynet${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+          path: ${{ matrix.binary }}
 
   release:
     if: github.event_name == 'release'
@@ -35,16 +41,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
-      - name: Display artifacts
-        run: ls -R
       - name: Upload to release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for f in easynet-*/easynet*; do
-            os=$(echo "$f" | cut -d/ -f1 | sed 's/easynet-//')
+          mkdir -p dist
+          for dir in easynet-*/; do
+            os=$(echo "$dir" | sed 's/^easynet-//;s/\/$//')
             ext=""
             [[ "$os" == *"windows"* ]] && ext=".exe"
-            cp "$f" "easynet-${os}${ext}"
-            gh release upload ${{ github.event.release.tag_name }} "easynet-${os}${ext}"
+            cp "$dir/easynet${ext}" "dist/easynet-${os}${ext}"
+            gh release upload ${{ github.event.release.tag_name }} "dist/easynet-${os}${ext}"
           done
