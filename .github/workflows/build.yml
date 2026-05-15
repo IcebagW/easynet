@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easynet-${{ matrix.os }}
+          path: build/easynet${{ matrix.os == 'windows-latest' && '.exe' || '' }}
+
+  release:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Display artifacts
+        run: ls -R
+      - name: Upload to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in easynet-*/easynet*; do
+            os=$(echo "$f" | cut -d/ -f1 | sed 's/easynet-//')
+            ext=""
+            [[ "$os" == *"windows"* ]] && ext=".exe"
+            cp "$f" "easynet-${os}${ext}"
+            gh release upload ${{ github.event.release.tag_name }} "easynet-${os}${ext}"
+          done
