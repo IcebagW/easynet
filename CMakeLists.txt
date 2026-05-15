@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(easynet
     src/main.cpp
     src/common.h
+    src/platform.h
     src/sender.cpp
     src/sender.h
     src/receiver.cpp
@@ -21,4 +22,6 @@ target_include_directories(easynet PRIVATE src)
 
 if(UNIX)
     target_link_libraries(easynet pthread)
+elseif(WIN32)
+    target_link_libraries(easynet ws2_32)
 endif()

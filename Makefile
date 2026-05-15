@@ -1,3 +1,6 @@
+# macOS / Linux only. For Windows, use CMake:
+#   mkdir build && cd build && cmake .. && cmake --build .
+
 CXX      := g++
 CXXFLAGS := -std=c++17 -Wall -Wextra -O2
 LDFLAGS  := -lpthread

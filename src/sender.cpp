@@ -24,13 +24,12 @@ static void print_final(const Stats& stats, const char* label) {
 // --- TCP Sender ---
 
 static void send_rate_tcp(const Config& cfg) {
-    int fd = tcp_connect(cfg.dst_ip.c_str(), cfg.port);
-    if (fd < 0) return;
+    platform_socket_t fd = tcp_connect(cfg.dst_ip.c_str(), cfg.port);
+    if (!platform_is_valid_socket(fd)) return;
 
-    // chunk size per 10ms interval
     uint64_t chunk = cfg.rate_bps / 8 * INTERVAL.count() / 1000;
     uint8_t* buf = new uint8_t[chunk];
-    memset(buf, 0xAA, chunk);  // fill pattern
+    memset(buf, 0xAA, chunk);
 
     Stats stats;
     stats.init();
@@ -58,8 +57,8 @@ static void send_rate_tcp(const Config& cfg) {
 }
 
 static void send_burst_tcp(const Config& cfg) {
-    int fd = tcp_connect(cfg.dst_ip.c_str(), cfg.port);
-    if (fd < 0) return;
+    platform_socket_t fd = tcp_connect(cfg.dst_ip.c_str(), cfg.port);
+    if (!platform_is_valid_socket(fd)) return;
 
     uint8_t* buf = new uint8_t[cfg.burst_bytes];
     memset(buf, 0xBB, cfg.burst_bytes);
@@ -80,8 +79,8 @@ static void send_burst_tcp(const Config& cfg) {
 // --- UDP Sender ---
 
 static void send_rate_udp(const Config& cfg) {
-    int fd = udp_create_socket();
-    if (fd < 0) return;
+    platform_socket_t fd = udp_create_socket();
+    if (!platform_is_valid_socket(fd)) return;
 
     uint64_t chunk = cfg.rate_bps / 8 * INTERVAL.count() / 1000;
     uint8_t* buf = new uint8_t[UDP_PAYLOAD_MAX];
@@ -99,7 +98,6 @@ static void send_rate_udp(const Config& cfg) {
         auto now = std::chrono::steady_clock::now();
         if (now >= end_time) break;
 
-        // Send multiple datagrams to achieve chunk size
         uint64_t sent = 0;
         while (sent < chunk) {
             size_t sz = std::min<uint64_t>(UDP_PAYLOAD_MAX, chunk - sent);
@@ -119,8 +117,8 @@ static void send_rate_udp(const Config& cfg) {
 }
 
 static void send_burst_udp(const Config& cfg) {
-    int fd = udp_create_socket();
-    if (fd < 0) return;
+    platform_socket_t fd = udp_create_socket();
+    if (!platform_is_valid_socket(fd)) return;
 
     uint8_t* buf = new uint8_t[cfg.burst_bytes];
     memset(buf, 0xBB, cfg.burst_bytes);

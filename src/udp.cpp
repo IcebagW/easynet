@@ -1,32 +1,26 @@
 #include "udp.h"
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
-#include <cerrno>
-#include <cstdio>
-
-int udp_create_socket() {
-    int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd < 0) {
-        perror("socket");
-        return -1;
+platform_socket_t udp_create_socket() {
+    platform_socket_t fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (!platform_is_valid_socket(fd)) {
+        platform_print_error("socket");
+        return PLATFORM_INVALID_SOCKET;
     }
     return fd;
 }
 
-int udp_bind(int fd, int port) {
+int udp_bind(platform_socket_t fd, int port) {
     int opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
 
-    if (bind(fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
-        fprintf(stderr, "bind port %d failed: %s\n", port, strerror(errno));
+    if (bind(fd, (sockaddr*)&addr, sizeof(addr)) == PLATFORM_SOCKET_ERROR) {
+        fprintf(stderr, "bind port %d failed: %s\n",
+                port, platform_strerror(platform_get_error()));
         return -1;
     }
 
@@ -34,11 +28,11 @@ int udp_bind(int fd, int port) {
     return 0;
 }
 
-void udp_close(int fd) {
-    if (fd >= 0) close(fd);
+void udp_close(platform_socket_t fd) {
+    if (platform_is_valid_socket(fd)) platform_close_socket(fd);
 }
 
-bool udp_sendto(int fd, const void* buf, size_t len, const char* ip, int port) {
+bool udp_sendto(platform_socket_t fd, const void* buf, size_t len, const char* ip, int port) {
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -47,21 +41,21 @@ bool udp_sendto(int fd, const void* buf, size_t len, const char* ip, int port) {
         return false;
     }
 
-    ssize_t n = sendto(fd, buf, len, 0, (sockaddr*)&addr, sizeof(addr));
-    if (n < 0) {
-        if (errno == EINTR) return true; // retryable
-        fprintf(stderr, "sendto error: %s\n", strerror(errno));
+    platform_ssize_t n = sendto(fd, (const char*)buf, (int)len, 0, (sockaddr*)&addr, sizeof(addr));
+    if (n == PLATFORM_SOCKET_ERROR) {
+        if (platform_is_eintr()) return true;
+        fprintf(stderr, "sendto error: %s\n", platform_strerror(platform_get_error()));
         return false;
     }
     return true;
 }
 
-ssize_t udp_recvfrom(int fd, void* buf, size_t len, sockaddr_in* src) {
+platform_ssize_t udp_recvfrom(platform_socket_t fd, void* buf, size_t len, sockaddr_in* src) {
     socklen_t addr_len = sizeof(sockaddr_in);
-    ssize_t n = recvfrom(fd, buf, len, 0, (sockaddr*)src, &addr_len);
-    if (n < 0) {
-        if (errno == EINTR) return 0;
-        perror("recvfrom");
+    platform_ssize_t n = recvfrom(fd, (char*)buf, (int)len, 0, (sockaddr*)src, &addr_len);
+    if (n == PLATFORM_SOCKET_ERROR) {
+        if (platform_is_eintr()) return 0;
+        platform_print_error("recvfrom");
     }
     return n;
 }

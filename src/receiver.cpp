@@ -2,11 +2,8 @@
 #include "tcp.h"
 #include "udp.h"
 
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 
 static void print_final(const Stats& stats, const char* label) {
     auto now = std::chrono::steady_clock::now();
@@ -22,12 +19,12 @@ static void print_final(const Stats& stats, const char* label) {
 // --- TCP Receiver ---
 
 static void recv_tcp(const Config& cfg) {
-    int server_fd = tcp_bind_listen(cfg.port);
-    if (server_fd < 0) return;
+    platform_socket_t server_fd = tcp_bind_listen(cfg.port);
+    if (!platform_is_valid_socket(server_fd)) return;
 
-    int client_fd = tcp_accept(server_fd);
-    if (client_fd < 0) {
-        close(server_fd);
+    platform_socket_t client_fd = tcp_accept(server_fd);
+    if (!platform_is_valid_socket(client_fd)) {
+        platform_close_socket(server_fd);
         return;
     }
 
@@ -38,17 +35,17 @@ static void recv_tcp(const Config& cfg) {
     printf("Receiving TCP data...\n");
 
     while (g_running) {
-        ssize_t n = recv(client_fd, buf, sizeof(buf), 0);
-        if (n < 0) {
-            if (errno == EINTR) continue;
-            perror("recv");
+        platform_ssize_t n = recv(client_fd, (char*)buf, sizeof(buf), 0);
+        if (n == PLATFORM_SOCKET_ERROR) {
+            if (platform_is_eintr()) continue;
+            platform_print_error("recv");
             break;
         }
         if (n == 0) {
             printf("Connection closed by peer.\n");
             break;
         }
-        stats.print(n, "RX");
+        stats.print((uint64_t)n, "RX");
     }
 
     tcp_close(client_fd);
@@ -59,8 +56,8 @@ static void recv_tcp(const Config& cfg) {
 // --- UDP Receiver ---
 
 static void recv_udp(const Config& cfg) {
-    int fd = udp_create_socket();
-    if (fd < 0) return;
+    platform_socket_t fd = udp_create_socket();
+    if (!platform_is_valid_socket(fd)) return;
 
     if (udp_bind(fd, cfg.port) < 0) {
         udp_close(fd);
@@ -75,10 +72,10 @@ static void recv_udp(const Config& cfg) {
     printf("Receiving UDP data...\n");
 
     while (g_running) {
-        ssize_t n = udp_recvfrom(fd, buf, sizeof(buf), &src);
-        if (n < 0) break;
-        if (n == 0) continue; // interrupted
-        stats.print(n, "RX");
+        platform_ssize_t n = udp_recvfrom(fd, buf, sizeof(buf), &src);
+        if (n == PLATFORM_SOCKET_ERROR) break;
+        if (n == 0) continue;
+        stats.print((uint64_t)n, "RX");
     }
 
     udp_close(fd);

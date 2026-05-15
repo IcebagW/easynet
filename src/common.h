@@ -1,11 +1,11 @@
 #pragma once
 
+#include "platform.h"
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <csignal>
 #include <string>
 #include <chrono>
 
@@ -66,3 +66,18 @@ uint64_t parse_size(const char* s);       // "10mb" -> 10,000,000
 uint64_t parse_duration(const char* s);   // "30s" -> 30
 void setup_signal_handler();
 void print_usage(const char* prog);
+
+// Inline: one small #ifdef for signal handling
+inline void setup_signal_handler() {
+#ifdef _WIN32
+    SetConsoleCtrlHandler([](DWORD t) -> BOOL {
+        if (t == CTRL_C_EVENT || t == CTRL_BREAK_EVENT) { g_running = 0; return TRUE; }
+        return FALSE;
+    }, TRUE);
+#else
+    struct sigaction sa{};
+    sa.sa_handler = [](int) { g_running = 0; };
+    sigaction(SIGINT, &sa, nullptr);
+    sigaction(SIGTERM, &sa, nullptr);
+#endif
+}
