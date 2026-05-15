@@ -27,17 +27,18 @@ mkdir build && cd build && cmake .. && cmake --build .
 在下行测试的目标机器上启动：
 
 ```bash
-easynet recv --port=<端口> --proto=tcp|udp
+easynet recv --port=<端口> --proto=tcp|udp [--threads=<n>]
 ```
 
-接收端会持续监听，实时打印吞吐量统计，直到 Ctrl+C 退出。
+- `--threads` 仅在 TCP 模式下生效，指定期望接收的连接数，每个连接独立线程处理，默认为 1
+- 接收端会持续监听，实时打印吞吐量统计，直到 Ctrl+C 退出
 
 ### 发送端 — 固定速率模式
 
 以恒定速率持续灌包一段时间：
 
 ```bash
-easynet send --dst=<目标IP> --port=<端口> --proto=tcp|udp --rate=<速率> --duration=<时长>
+easynet send --dst=<目标IP> --port=<端口> --proto=tcp|udp --rate=<速率> --duration=<时长> [--threads=<n>]
 ```
 
 **示例：** 以 10 Mbit/s 发送 TCP 流量，持续 30 秒
@@ -46,12 +47,18 @@ easynet send --dst=<目标IP> --port=<端口> --proto=tcp|udp --rate=<速率> --
 easynet send --dst=192.168.1.100 --port=8080 --proto=tcp --rate=10m --duration=30s
 ```
 
+**示例：** 8 线程，每线程 1.25 Gbit/s，合计 10 Gbit/s 高压灌包
+
+```bash
+easynet send --dst=192.168.1.100 --port=8080 --proto=udp --rate=10g --duration=30s --threads=8
+```
+
 ### 发送端 — 突发模式
 
 发送一个指定大小的数据包：
 
 ```bash
-easynet send --dst=<目标IP> --port=<端口> --proto=tcp|udp --burst=<大小>
+easynet send --dst=<目标IP> --port=<端口> --proto=tcp|udp --burst=<大小> [--threads=<n>]
 ```
 
 **示例：** 向目标发送 10 MB 的 UDP 载荷
@@ -70,6 +77,7 @@ easynet send --dst=192.168.1.100 --port=8080 --proto=udp --burst=10mb
 | `--rate` | 灌包速率 | 数字 + 后缀：`k`(Kbit/s) / `m`(Mbit/s) / `g`(Gbit/s) |
 | `--duration` | 持续时间 | 数字 + 后缀：`s`(秒) / `m`(分钟) / `h`(小时) |
 | `--burst` | 突发包大小 | 数字 + 后缀：`kb`(KB) / `mb`(MB) / `gb`(GB) |
+| `--threads` | 线程数 | 1–64（默认 1）。速率/突发量由各线程均分 |
 
 注意：所有参数使用 `=` 分隔键值，如 `--rate=10m`。
 
@@ -135,6 +143,20 @@ easynet send --dst=<B的IP> --port=8888 --proto=tcp --burst=100mb
 ```
 
 根据耗时和总字节数计算有效吞吐率。
+
+### 高带宽压测（多线程）
+
+单线程受 CPU 单核及 socket buffer 限制，万兆以上建议开启多线程：
+
+```bash
+# 机器 B 接收 8 路 TCP 连接
+easynet recv --port=9999 --proto=tcp --threads=8
+
+# 机器 A 8 线程 × 1.25 Gbit/s = 10 Gbit/s 灌入
+easynet send --dst=<B的IP> --port=9999 --proto=tcp --rate=10g --duration=60s --threads=8
+```
+
+多线程模式下，总速率由各线程均分。每个线程独立创建 socket（TCP 各自连接，UDP 各自发送），汇总统计为总吞吐量。
 
 ## 输出示例
 
