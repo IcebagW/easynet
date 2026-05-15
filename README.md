@@ -4,11 +4,19 @@
 
 ## 编译
 
+**macOS / Linux：**
+
 ```bash
 make
 ```
 
-要求 C++17，依赖 POSIX socket（macOS / Linux 均可编译）。
+**Windows（Visual Studio 或 MinGW）：**
+
+```bash
+mkdir build && cd build && cmake .. && cmake --build .
+```
+
+要求 C++17。macOS/Linux 链接 `-lpthread`，Windows 链接 `ws2_32`。
 
 ## 使用方式
 
@@ -150,10 +158,11 @@ Connection closed by peer.
 
 ```
 easynet/
-├── Makefile / CMakeLists.txt    # C++17，链接 pthread
+├── Makefile / CMakeLists.txt    # C++17，POSIX 链接 pthread，Windows 链接 ws2_32
 ├── src/
 │   ├── main.cpp                 # CLI 入口
-│   ├── common.h                 # 配置结构体、统计、工具函数
+│   ├── common.h                 # 配置结构体、统计、工具函数、信号处理
+│   ├── platform.h               # 平台抽象层（POSIX / Winsock2 差异集中于此）
 │   ├── sender.cpp / sender.h    # 发送端（速率 + 突发）
 │   ├── receiver.cpp / receiver.h # 接收端（统计上报）
 │   ├── tcp.cpp / tcp.h          # TCP socket 封装
