@@ -67,7 +67,7 @@ static void send_burst_tcp(const Config& cfg) {
     stats.init();
 
     printf("Sending TCP burst: %.2f MB...\n", cfg.burst_bytes / 1e6);
-    if (tcp_send_len_prefixed(fd, buf, cfg.burst_bytes)) {
+    if (tcp_send_len_prefixed(fd, buf, (uint32_t)cfg.burst_bytes)) {
         stats.print(cfg.burst_bytes + 4, "TX");
     }
 

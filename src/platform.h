@@ -8,6 +8,7 @@
     #include <ws2tcpip.h>
     #include <windows.h>
     #include <cstdio>
+    #include <csignal>
 
     using platform_socket_t = SOCKET;
     using platform_ssize_t = int;
