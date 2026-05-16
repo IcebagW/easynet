@@ -1,4 +1,5 @@
 #include "udp.h"
+#include "common.h"
 
 platform_socket_t udp_create_socket() {
     platform_socket_t fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -6,6 +7,9 @@ platform_socket_t udp_create_socket() {
         platform_print_error("socket");
         return PLATFORM_INVALID_SOCKET;
     }
+    int buf_size = SOCKET_BUF_SIZE;
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(buf_size));
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(buf_size));
     return fd;
 }
 

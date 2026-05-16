@@ -1,4 +1,5 @@
 #include "tcp.h"
+#include "common.h"
 
 platform_socket_t tcp_connect(const char* ip, int port) {
     platform_socket_t fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -9,6 +10,8 @@ platform_socket_t tcp_connect(const char* ip, int port) {
 
     int opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+    int buf_size = SOCKET_BUF_SIZE;
+    setsockopt(fd, SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(buf_size));
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -39,6 +42,8 @@ platform_socket_t tcp_bind_listen(int port) {
 
     int opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+    int buf_size = SOCKET_BUF_SIZE;
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(buf_size));
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -70,6 +75,9 @@ platform_socket_t tcp_accept(platform_socket_t server_fd) {
         platform_print_error("accept");
         return PLATFORM_INVALID_SOCKET;
     }
+
+    int buf_size = SOCKET_BUF_SIZE;
+    setsockopt(fd, SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(buf_size));
 
     char ip[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &client.sin_addr, ip, sizeof(ip));

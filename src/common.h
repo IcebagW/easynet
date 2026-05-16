@@ -9,8 +9,9 @@
 #include <string>
 #include <chrono>
 
-constexpr int UDP_PAYLOAD_MAX = 1472;  // Ethernet MTU 1500 - IP 20 - UDP 8
-constexpr int STATS_INTERVAL_SEC = 1;  // Print stats every second
+constexpr int UDP_PAYLOAD_MAX = 1472;    // Ethernet MTU 1500 - IP 20 - UDP 8
+constexpr int STATS_INTERVAL_SEC = 1;    // Print stats every second
+constexpr int SOCKET_BUF_SIZE = 2 * 1024 * 1024;  // 2MB socket buffer
 
 enum class Mode { Send, Recv };
 enum class Proto { TCP, UDP };
