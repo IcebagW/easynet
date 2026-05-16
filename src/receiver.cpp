@@ -85,6 +85,10 @@ static void recv_tcp(const Config& cfg) {
             if (errno == EAGAIN || errno == EWOULDBLOCK || platform_is_eintr()) continue;
             break;
         }
+        // Windows inherits SO_RCVTIMEO from listen socket; clear for client
+        struct timeval tv_no{};
+        setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv_no, sizeof(tv_no));
+
         shared.conn_count++;
         threads.emplace_back(recv_tcp_connection, client_fd, &shared);
 
