@@ -10,6 +10,7 @@
 
 // 100Hz send frequency
 static constexpr auto INTERVAL = std::chrono::milliseconds(10);
+static constexpr uint64_t TCP_CHUNK_MAX = 256 * 1024;  // 256KB per tick max
 
 static void print_final(const Stats& stats, const char* label) {
     auto now = std::chrono::steady_clock::now();
@@ -29,6 +30,8 @@ static void send_rate_tcp_impl(const Config& cfg, Stats& out) {
     if (!platform_is_valid_socket(fd)) return;
 
     uint64_t chunk = cfg.rate_bps / 8 * INTERVAL.count() / 1000;
+    if (chunk > TCP_CHUNK_MAX) chunk = TCP_CHUNK_MAX;
+    if (chunk == 0) chunk = 1;
     uint8_t* buf = new uint8_t[chunk];
     memset(buf, 0xAA, chunk);
 
