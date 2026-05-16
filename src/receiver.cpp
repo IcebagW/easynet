@@ -43,6 +43,13 @@ static void recv_tcp_connection(platform_socket_t client_fd, SharedReceiver* sha
         platform_ssize_t n = recv(client_fd, (char*)buf, sizeof(buf), 0);
         if (n == PLATFORM_SOCKET_ERROR) {
             if (platform_is_eintr()) continue;
+            if (platform_is_econnreset()) {
+                printf("Connection reset by peer.\n");
+            } else {
+                fprintf(stderr, "recv error: %s (code %d)\n",
+                        platform_strerror(platform_get_error()),
+                        platform_get_error());
+            }
             break;
         }
         if (n == 0) {
